@@ -1,0 +1,375 @@
+
+package org.usfirst.frc.team5535.robot;
+
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.cscore.*;
+import edu.wpi.first.wpilibj.*;
+
+
+import edu.wpi.first.wpilibj.RobotDrive.MotorType;
+import edu.wpi.first.wpilibj.buttons.JoystickButton;
+import edu.wpi.first.wpilibj.interfaces.Gyro;
+import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import edu.wpi.first.wpilibj.vision.VisionRunner;
+import edu.wpi.first.wpilibj.vision.VisionThread;
+public class Robot extends IterativeRobot {
+   
+
+
+	final String defaultAuto = "Default";
+	final String customAuto = "My Auto";
+	String autoSelected;
+	SendableChooser chooser;
+	Boolean a;
+	Joystick m_driveStick;
+	JoystickButton Trigger, TBL, TBR, TTL, TTR, Side, Seven, Eight, Nine, Ten, Eleven, Twelve, Xboxa, Xboxb;
+	Double i, loop, w, voltage;
+	RobotDrive m_robotDrive;
+	NetworkTable mTable;
+    //CameraServer mCamServer;
+    UsbCamera camera, cameratwo;   
+	Victor frontLeft, frontRight, rearLeft, rearRight, Motor4;
+	Solenoid exampleSolenoid;
+	DoubleSolenoid double1, double2;
+	NetworkTable table;   	 
+	Gyro gro;
+	Float angle;
+	static final double Kp = 0.075;
+	Timer timer;   
+    AnalogInput ult;
+	Compressor c = new Compressor(0);
+    
+    //private double range12;    
+    
+
+    
+    public void robotInit() {
+   	 //ultra.setAutomaticMode(true);
+    	chooser = new SendableChooser();
+    	chooser.addDefault("Default Auto", defaultAuto);
+    	chooser.addObject("My Auto", customAuto);
+    	SmartDashboard.putData("Auto choices", chooser);
+    	m_driveStick = new Joystick(0);
+    	gro = new ADXRS450_Gyro();
+    	gro.calibrate();
+
+    	camera = CameraServer.getInstance().startAutomaticCapture();
+    	cameratwo = CameraServer.getInstance().startAutomaticCapture();
+    	ult = new AnalogInput(1);
+
+   	 
+     Trigger = new JoystickButton(m_driveStick, 1);
+     Side = new JoystickButton(m_driveStick, 2);
+     TBL = new JoystickButton(m_driveStick, 3);
+     TBR = new JoystickButton(m_driveStick, 4);
+     TTL = new JoystickButton(m_driveStick, 5);
+     TTR = new JoystickButton(m_driveStick, 6);
+     Seven = new JoystickButton(m_driveStick, 7);
+     Eight = new JoystickButton(m_driveStick, 8);
+     Nine = new JoystickButton(m_driveStick, 9);
+     Ten = new JoystickButton(m_driveStick, 10);
+     Eleven = new JoystickButton(m_driveStick, 11);
+     Twelve = new JoystickButton(m_driveStick, 12);
+
+ 	frontLeft = new Victor(1); // front left
+ 	frontRight = new Victor(2); //back left
+ 	rearLeft = new Victor(3); // front right
+ 	rearRight = new Victor(4); // back right
+ 	Motor4 = new Victor(5);         	 
+
+ 	m_robotDrive = new RobotDrive(frontLeft, frontRight, rearLeft, rearRight);
+	 
+ 	m_robotDrive.setInvertedMotor(MotorType.kRearRight, false);
+ 	m_robotDrive.setInvertedMotor(MotorType.kFrontRight, false);
+ 	m_robotDrive.setInvertedMotor(MotorType.kRearLeft, true);
+ 	m_robotDrive.setInvertedMotor(MotorType.kFrontLeft, true);
+	  m_robotDrive.setMaxOutput(0.5);
+	// m_robotDrive.setExpiration(0.01);
+ 	System.out.print("Motors Inverted");
+
+     c.setClosedLoopControl(false);
+     double1 = new DoubleSolenoid(0,1);
+ 	double2 = new DoubleSolenoid(2,3);
+     timer = new Timer();
+ 	System.out.println("Thread");
+Thread d = new Thread(() -> {
+    while(!Thread.interrupted()){      	 
+
+   	                  	voltage = ult.getVoltage();
+                            	Timer.delay(0.01);
+    }
+});
+d.start();
+      	Thread t = new Thread(() -> {
+   		   while (!Thread.interrupted()){
+   				 SmartDashboard.putNumber("Gyro angle", gro.getAngle());
+                	SmartDashboard.putNumber("Ultra Sonic", voltage);
+
+   		   }
+      	});
+      	t.start();
+     	 
+      	System.out.println("Done with thread");
+ 
+    }
+    
+
+ 
+
+    
+
+	public void autonomousInit() {
+   	 System.out.println("Autonomus init");
+   	  m_robotDrive.setMaxOutput(0.6);
+
+   	 timer.reset();
+   	 timer.start();
+   	 autoSelected = (String) chooser.getSelected();
+   	 System.out.println("Auto selected: " + autoSelected);
+   	 camera.setExposureManual(5);
+   	  loop = 1.0;
+          	gro.reset();
+	}
+
+	 
+	public void autonomousPeriodic() {
+   	 
+   	 switch(autoSelected) {
+   	 case customAuto:
+           	System.out.println("calibration");
+   		   
+          	 
+           	angle = (float) gro.getAngle() + 14; // get current heading
+     		   if(voltage >= 0.28 && loop < 2.0) {
+   				 System.out.println("Drive");
+   	         	angle = (float) gro.getAngle() + 14 ; // get current heading
+   	        	 
+   	         	System.out.println(angle);
+
+   	         	m_robotDrive.drive(-0.6, -angle * Kp ); // drive towards heading 0
+   	      	Timer.delay(0.01);
+   	     	 
+   	       	if(ult.getVoltage() <= 1.00){
+             		   loop = 2.0;
+                	}
+     		   }
+   	       	 
+   	          	else if(loop == 2.0){
+   	        		  Timer.delay(1);
+   	        		  loop = 2.5;
+   	          	}
+   	          	else if(loop == 2.5){
+   	        			System.out.println("set I 0");
+   	                    	i = 0.0;
+   	                    	loop = 3.0;
+   		    			    
+   		  		   	 
+   	          	}
+   	          	else if(loop == 3.0) {
+   	       			 
+   		  		 	if(i == 0.0){
+   		  					 System.out.println("Timer Reset");
+   		  					timer.reset();
+   		  				 	i = 2.0;
+   		  				 }
+   		  				 if(timer.get() < 3){
+   			  				 
+   		  					 m_robotDrive.mecanumDrive_Cartesian(0, 0.5, 0, 0);
+   		  				 }
+   		  				 
+   		  				 else if(timer.get() < 5){
+   			  			   
+   		  					 m_robotDrive.mecanumDrive_Cartesian(0 , 0, 0, 0);
+
+   		  				 }
+   		  				 else if(timer.get() < 8){
+   				        	// angle = (float) gro.getAngle() - 14 ; // get current heading
+               	 
+   		  					 m_robotDrive.mecanumDrive_Cartesian(-0.6 , 0, 0, -angle * Kp );
+   		  					 Timer.delay(0.01);
+   		  				 //left
+   	                 	 
+   		  				 }
+   		  				 else if(timer.get() < 10){
+   			  			 	m_robotDrive.mecanumDrive_Cartesian(0 , 0, 0, 0);
+   	                   	//  System.out.println("Pause");
+
+   		  				 }
+   		  				 else if(timer.get() < 12){
+   		                  	m_robotDrive.mecanumDrive_Cartesian(0, -0.7, 0, 0);
+   	                    	// System.out.println("Forward");
+   		  			    
+   		  				 }
+   		  				 else if(timer.get() < 14 ){
+   			  			 
+   		  				 }
+   		  				 else{
+   		  					   m_robotDrive.mecanumDrive_Cartesian(0 , 0, 0, 0);
+
+   				  				loop = 3.5;
+
+   		  				 }
+   	          	}
+   	          	else{   	        	 
+   	        		  System.out.println("ShutDown");
+
+   	        		  break;
+   	          	}
+       	 
+   		 
+   	 
+     		   
+    
+   		 
+   	 
+   	 case defaultAuto:
+   	 
+   	 default:
+   	  if(i == 0.0){
+     					 System.out.println("Timer Reset");
+     					timer.reset();
+     				 	i = 2.0;
+     				 }   	 
+   	  else if(voltage >= 0.28 && loop == 1.0 && timer.get() < 3){
+   		   angle = (float) gro.getAngle() + 14 ; // get current heading
+           	 
+            	System.out.println(angle);
+
+            	m_robotDrive.drive(-0.6, -angle * Kp ); // drive towards heading 0
+         	Timer.delay(0.01);
+         	if(ult.getVoltage() <= 1.00){
+        		   loop = 1.5;
+           	}
+   				 }
+   		 else if(loop == 1.5 && timer.get() < 5  ){
+   			 
+   			  rearRight.set(-0.5);
+   		  	frontRight.set(0.5);
+   		  	rearLeft.set(0.5);
+   		  	frontLeft.set(-0.5); 				 
+     			 
+   		 }
+   	 
+   		 else{
+   			 
+   		 }
+   	 }
+    
+
+
+
+   	 }   		 
+   	 
+
+   public void disabledInit(){
+   	System.out.print("disabled init");
+   }
+	public void disabledPeriodic(){
+//SmartDashboard.putNumber("Gyro angle", gro.getAngle());
+}
+
+	public void teleopInit(){
+   	 camera.setExposureManual(25);
+   	 cameratwo.setExposureManual(25);
+          m_robotDrive.setMaxOutput(0.5);
+	}
+ 	 
+	public void teleopPeriodic() {
+   // System.out.println(m_driveStick.getPOV());    
+    
+   m_robotDrive.mecanumDrive_Cartesian(m_driveStick.getX() , m_driveStick.getY(), m_driveStick.getTwist()* -0.7 , 0);
+
+	// Start of buttons
+	if(Trigger.get()){
+   	 
+    	m_robotDrive.setMaxOutput(.55);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.6);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.65);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.7);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.75);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.8);
+
+   	 // Makes it slowly build up to the speed of .8
+   	 
+	}
+	else if(TBR.get()){
+   	 m_robotDrive.drive(-0.6, 0);
+	}
+	else if(TTL.get()){
+ 	rearRight.set(-0.5);
+ 	frontRight.set(0.5);
+ 	rearLeft.set(0.5);
+ 	frontLeft.set(-0.5);
+	}
+	else if(TTR.get()){
+   	  rearRight.set(0.5);
+     	frontRight.set(-0.5);
+     	rearLeft.set(-0.5);
+     	frontLeft.set(0.5);
+	}
+   
+	else if(Seven.get()){
+	c.setClosedLoopControl(false);
+	}
+	else if(Eight.get()){
+   			 c.setClosedLoopControl(true);
+
+	}
+   	else if(Nine.get()){
+   			 double1.set(DoubleSolenoid.Value.kReverse);
+
+	}
+    	 
+	else if(Ten.get()){
+   	 double1.set(DoubleSolenoid.Value.kForward);
+
+	}
+	else if(Eleven.get()){
+   	 double2.set(DoubleSolenoid.Value.kReverse);
+   	 }
+    
+	else if(Twelve.get()){
+   	 
+		 double2.set(DoubleSolenoid.Value.kForward);
+
+	}
+	else if(Side.get()){
+    
+   	 Motor4.set(-5);
+
+	}
+ 
+	else if(TBL.get()){
+   	 m_robotDrive.drive(0.7, 0);
+	}
+ 
+	else{
+   	 double1.set(DoubleSolenoid.Value.kOff);
+   	 double2.set(DoubleSolenoid.Value.kOff);
+    	Motor4.set(0);
+	  //  m_robotDrive.mecanumDrive_Cartesian(m_driveStick.getX(), m_driveStick.getY(), m_driveStick.getTwist() * -0.5 ,0);
+	       m_robotDrive.setMaxOutput(0.5);
+
+
+	}
+	}
+    
+   
+	public void testPeriodic() {
+    	m_robotDrive.setInvertedMotor(MotorType.kRearRight, false);
+    	m_robotDrive.setInvertedMotor(MotorType.kFrontRight, false);
+    	m_robotDrive.setInvertedMotor(MotorType.kRearLeft, true);
+    	m_robotDrive.setInvertedMotor(MotorType.kFrontLeft, true);
+    	angle = (float) gro.getAngle(); // get current heading
+    	System.out.println(angle);
+	}
+    
+}
+
+
