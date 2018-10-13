@@ -1,0 +1,313 @@
+package org.usfirst.frc.team5535.robot;
+
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.cscore.*;
+import edu.wpi.first.wpilibj.*;
+
+
+import edu.wpi.first.wpilibj.RobotDrive.MotorType;
+import edu.wpi.first.wpilibj.buttons.JoystickButton;
+import edu.wpi.first.wpilibj.interfaces.Gyro;
+import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import edu.wpi.first.wpilibj.vision.VisionRunner;
+import edu.wpi.first.wpilibj.vision.VisionThread;
+public class Robot extends IterativeRobot {
+   
+
+
+	final String defaultAuto = "Str8 8"; // makes a string for going forward 8 sec
+	final String customAuto = "Str8 6"; // makes a string for going forward 6 seconds
+	final String centerauto = "middle peg"; // makes a string for the middle peg in auton
+	String autoSelected; // Makes string for auton selection
+	SendableChooser<String> chooser = new SendableChooser<>(); /// makes a sendable chooser auton  
+	Boolean a; // makes a boolean called a? not sure what for
+	Joystick m_driveStick; // makes a var for a joystick
+	JoystickButton Trigger, TBL, TBR, TTL, TTR, Side, Seven, Eight, Nine, Ten, Eleven, Twelve, Xboxa, Xboxb;
+	Double i, loop, w, voltage, t; // makes control var
+	RobotDrive m_robotDrive; // makes a robot drive
+	NetworkTable mTable; // Leftover from grip?
+    //CameraServer mCamServer;
+    UsbCamera camera, cameratwo;   // declaires two USB cameras
+	Victor frontLeft, frontRight, rearLeft, rearRight, Motor4; // makes 5 motor controlers (victor)
+	Solenoid exampleSolenoid; // Solenoid called example solenoid (testing? single solinoid)
+	DoubleSolenoid double1, double2; // declaires 2 double solenoids
+	NetworkTable table;   // another network table
+	//Gyro gro; // makes a gyro
+	//Float angle; // makes a float called angle for gyro
+	//static final double Kp = 0.075; // makes a static double for reaction of gyro
+	Timer timer;   // makes a timer for autonomus
+	Compressor c = new Compressor(0); // makes a compressor on standerd port
+    
+    //private double range12;    
+    
+
+    
+    public void robotInit() {
+   	 //ultra.setAutomaticMode(true);
+ 	 
+    	m_driveStick = new Joystick(0); // puts driverstick on joystick 0
+    	//gro = new ADXRS450_Gyro(); // gyro defined
+    	//gro.calibrate(); // calibrates gyro (causes a little lag)
+   	 
+    	camera = CameraServer.getInstance().startAutomaticCapture(); // starts camera
+    	cameratwo = CameraServer.getInstance().startAutomaticCapture(); // starts the second camera
+ 	//   ult = new AnalogInput(1); // defines that ultrasonic sensor is on port 1
+
+   	 
+ 	Trigger = new JoystickButton(m_driveStick, 1); // difines trigger on 1
+     Side = new JoystickButton(m_driveStick, 2); // side button on 2
+     TBL = new JoystickButton(m_driveStick, 3); // Top bottem  button on 3
+     TBR = new JoystickButton(m_driveStick, 4); // Top bottem button on 4
+     TTL = new JoystickButton(m_driveStick, 5); // Top top left on 5
+     TTR = new JoystickButton(m_driveStick, 6); // top top right on 6
+     Seven = new JoystickButton(m_driveStick, 7); //7
+     Eight = new JoystickButton(m_driveStick, 8);//8
+     Nine = new JoystickButton(m_driveStick, 9);//9
+     Ten = new JoystickButton(m_driveStick, 10);//10
+     Eleven = new JoystickButton(m_driveStick, 11);//11
+     Twelve = new JoystickButton(m_driveStick, 12);//12
+
+ 	frontLeft = new Victor(1); // front left
+ 	frontRight = new Victor(2); //back left
+ 	rearLeft = new Victor(3); // front right
+ 	rearRight = new Victor(4); // back right
+ 	Motor4 = new Victor(5);   // winch       	 
+
+ 	m_robotDrive = new RobotDrive(frontLeft, frontRight, rearLeft, rearRight); // makes the roboot drive
+	 
+ 	m_robotDrive.setInvertedMotor(MotorType.kRearRight, false); // does not inverts the back right
+ 	m_robotDrive.setInvertedMotor(MotorType.kFrontRight, false); // does not inverts back left
+ 	m_robotDrive.setInvertedMotor(MotorType.kRearLeft, true); // inverts front right
+ 	m_robotDrive.setInvertedMotor(MotorType.kFrontLeft, true); // inverts front left
+	  m_robotDrive.setMaxOutput(0.5); // sets max output to 0.5
+	// m_robotDrive.setExpiration(0.01);
+ 	System.out.print("Motors Inverted");  
+
+     c.setClosedLoopControl(false); // makes compresor off on start up
+     double1 = new DoubleSolenoid(0,1); // double solenoid 1 on ports 0 and 1
+ 	double2 = new DoubleSolenoid(2,3); // double solenoid 2 on ports 2 and 3
+     timer = new Timer(); // makes the timer in the timer class
+ 	System.out.println("Thread"); // Prints out to log thread is starting
+/*Thread d = new Thread(() -> {
+    while(!Thread.interrupted()){      	 
+
+                            	Timer.delay(0.01);  // makes thread sleep for 0.01
+                            	// scans voltage constantly
+    }
+});
+d.start();
+*/
+     	/* Thread t = new Thread(() -> {
+   		   while (!Thread.interrupted()){
+   				 SmartDashboard.putNumber("Gyro angle", gro.getAngle()); // gets angle of gyro & prints
+
+   		   }
+      	});
+      	t.start();
+      	*/
+    	System.out.println("Done with thread");
+    	chooser.addDefault("Str8 8", defaultAuto); // defines the str8 8 to default auto
+    	chooser.addObject("Str8 6", customAuto); // defines str8 6 to custom auto
+    	chooser.addObject("middle peg", centerauto);// defines middle peg to centerauto
+    	SmartDashboard.putData("Auto choices", chooser); // puts the data on smart dashboard
+    }
+    
+
+ 
+
+    
+
+	public void autonomousInit() { // setting up for auton
+   	 System.out.println("Autonomus init");// Sends a sentence to the log
+   	  m_robotDrive.setMaxOutput(0.6); // sets the max output to 0.6 speed
+     	t = 0.0; // sets up a control double
+   	 timer.reset(); // resets timer
+   	 timer.start(); // starts timer
+   	 autoSelected = chooser.getSelected(); // Gets whats selected from smrt dash
+   	 System.out.println("Auto selected: " + autoSelected); // prints out autonnomus selected
+   	 camera.setExposureManual(0); // sets the camera bright
+   	 cameratwo.setExposureManual(0); // sets the camera bright (Z helped)
+   	 loop = 2.0;  // control double Loop
+   	 System.out.println(autoSelected); // prints out the autonomus selected
+     	// 	gro.reset(); // resets the gyro
+          	m_robotDrive.setInvertedMotor(MotorType.kRearRight, false); // does not inverts back right motor
+          	m_robotDrive.setInvertedMotor(MotorType.kFrontRight, false); // does not inverts back left
+	}
+
+	 
+	public void autonomousPeriodic() {
+   	 
+   	 switch(autoSelected) {
+   	 case customAuto:
+   		      	 
+   		 if(timer.get() > 1 && timer.get() < 4 && loop == 2.0  ){
+   			 m_robotDrive.mecanumDrive_Cartesian(0, -0.5, 0, 0 );
+   		 // goes forward unless loop is diffrent than 2.0 or timer is 6 or higher
+
+   	 }
+   	 else if(timer.get() > 4 ){
+   		 loop = 5.6;
+   		 // if the timer reaches greater than 6 it turns the loop to 5.6 forever
+   	 }
+   		 break; // kills
+   			        		 
+     		   
+    
+   	 case centerauto:
+   		 if( timer.get() < 3 ){
+   			 m_robotDrive.mecanumDrive_Cartesian(0, -0.5, 0, 0);
+   			 // drives forward with curve of .01 (right drift) unless it greater than 3
+   		 }
+   		 /*if(timer.get() >= 3 && timer.get()< 4 ){
+   			 m_robotDrive.mecanumDrive_Cartesian(0, -0.3, 0, 0);
+   			 // once the timer gets to 4 it dies (bot stops for second)
+   		 }
+   		 */
+   		 if(timer.get() >= 3 && timer.get() < 5.5 ){
+   			 m_robotDrive.mecanumDrive_Cartesian(0, 0, 0, 0);
+   			 // drives backward for 1.5 seconds with curve
+   		 }
+   		 if(timer.get() >= 5.5){
+   			 m_robotDrive.mecanumDrive_Cartesian(0, 0, 0, 0);
+   			 // stops the robot for the rest of the time
+   		 }
+   		 break;  // stop code
+   	 
+   	 case defaultAuto:
+
+   	 default:
+   	 if(timer.get() > 1 && timer.get() < 8 && loop == 2.0  ){
+   			 m_robotDrive.mecanumDrive_Cartesian(0, -0.5, 0, 0 );
+   		 // drives forward for 1/2 speed for 7 seconds
+
+   	 }
+   	 else if(timer.get() > 8 ){
+   		 loop = 5.6;
+   		 // stops the loop at 8 seconds
+   	 }
+   	 break; // if problems persist delete me added 3/14 at 3:18 pm
+   	 }
+ 
+   	 }   		 
+   	 
+
+   public void disabledInit(){
+   	System.out.print("disabled init");// prints out that robot is disabled
+   }
+	public void disabledPeriodic(){
+//SmartDashboard.putNumber("Gyro angle", gro.getAngle());
+}
+
+	public void teleopInit(){
+   	 camera.setExposureManual(45); // makes camera bright
+   	 cameratwo.setExposureManual(75); // makes camera bright
+          m_robotDrive.setMaxOutput(0.3); // makes max output to 0.5
+           m_robotDrive.setInvertedMotor(MotorType.kRearRight, false); // does not invert
+      	m_robotDrive.setInvertedMotor(MotorType.kFrontRight, false); // does not invert
+	}
+ 	 
+	public void teleopPeriodic() {
+   // System.out.println(m_driveStick.getPOV());    
+    
+   m_robotDrive.mecanumDrive_Cartesian(m_driveStick.getX() , m_driveStick.getY(), m_driveStick.getTwist()* -0.7 , 0);
+// drives the robot when not preocupied
+	// Start of buttons
+	if(Trigger.get()){
+   	 
+   	/* m_robotDrive.setMaxOutput(.55);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.6);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.65);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.7);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.75);
+    	Timer.delay(.01);
+    	m_robotDrive.setMaxOutput(.8); */
+   	 
+
+   	 // Makes it slowly build up to the speed of .8
+   	 
+	}
+	else if(TBR.get()){
+   	 m_robotDrive.drive(-0.6, 0); //  turns right
+	}
+	else if(TTL.get()){
+ 	rearRight.set(-0.5);
+ 	frontRight.set(0.5);
+ 	rearLeft.set(0.5);
+ 	frontLeft.set(-0.5);
+ 	// sketchly drift left
+	}
+	else if(TTR.get()){
+   	  rearRight.set(0.5);
+     	frontRight.set(-0.5);
+     	rearLeft.set(-0.5);
+     	frontLeft.set(0.5);
+     	// sketchly drift right
+	}
+   
+	else if(Seven.get()){
+	c.setClosedLoopControl(false);
+	// turns off the compressor
+	}
+	else if(Eight.get()){
+   			 c.setClosedLoopControl(true);
+  // turns on the compressor
+	}
+   	else if(Nine.get()){
+   			 double1.set(DoubleSolenoid.Value.kReverse);
+  	// activates double 1 in reverse
+	}
+    	 
+	else if(Ten.get()){
+   	 double1.set(DoubleSolenoid.Value.kForward);
+ // makes the double 1 go forward
+	}
+	else if(Eleven.get()){
+  	Motor4.set(.6);
+  	// wench at .6 speed
+}
+    
+	else if(Twelve.get()){
+   	 
+   	 Motor4.set(.8);
+   	 // wench at .8 speed
+
+	}
+	else if(Side.get()){
+	double2.set(DoubleSolenoid.Value.kForward);
+
+	}
+ 
+	else if(TBL.get()){
+   	 m_robotDrive.drive(0.7, 0);
+   	 // turns the robot left
+	}
+ 
+	else{
+   	 double1.set(DoubleSolenoid.Value.kOff);
+   	 double2.set(DoubleSolenoid.Value.kReverse);
+    	Motor4.set(0);
+	  //  m_robotDrive.mecanumDrive_Cartesian(m_driveStick.getX(), m_driveStick.getY(), m_driveStick.getTwist() * -0.5 ,0);
+	       m_robotDrive.setMaxOutput(0.3);
+// turns everything back to normal or off
+
+	}
+	}
+    
+   
+	public void testPeriodic() {
+    	m_robotDrive.setInvertedMotor(MotorType.kRearRight, false);
+    	m_robotDrive.setInvertedMotor(MotorType.kFrontRight, false);
+    	m_robotDrive.setInvertedMotor(MotorType.kRearLeft, true);
+    	m_robotDrive.setInvertedMotor(MotorType.kFrontLeft, true);
+   	// angle = (float) gro.getAngle(); // get current heading
+   	// System.out.println(angle);
+	}
+    
+}
+
+
